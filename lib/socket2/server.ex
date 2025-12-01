@@ -4,8 +4,9 @@ defmodule Socket2.Server do
   import Agent
 
   def start do
-    case Agent.whereis(Socket2.Tracker) do
-      nil -> {:ok, _} = Socket2.Tracker.start_link([])
+    case Socket2.Tracker.start_link() do
+      {:ok, _} -> :ok
+      {:error, {:already_started, _}} -> :ok
     end
 
     {:ok, server} = Socket.TCP.listen(1337, packet: :line)

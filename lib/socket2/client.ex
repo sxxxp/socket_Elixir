@@ -2,7 +2,7 @@ defmodule Socket2.Client do
   import Socket
 
   def connect do
-    client = Socket.TCP.connect!("127.0.0.1", 1337, packet: :line)
+    client = Socket.TCP.connect("127.0.0.1", 1337, packet: :line)
     handel(client)
     client |> Socket.Stream.close()
     :ok
