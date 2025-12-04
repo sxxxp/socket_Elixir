@@ -55,45 +55,45 @@ defmodule Socket3.Client do
   end
 
   defp handle_recv(client, sender) do
-    receive do
-      :error ->
+    case client |> Socket.Stream.recv() do
+      {:ok, nil} ->
+        IO.puts("[!] Received nil (Server Disconnected).")
+        send(sender, :done)
+        :ok
+
+      {:ok, message} ->
+        IO.puts(inspect(parse(message)))
+        handle_recv(client, sender)
+
+      {:error, :closed} ->
+        IO.puts("[!] Connection closed by server.")
+        send(sender, :done)
+        :ok
+
+      {:error, reason} ->
+        send(sender, :error)
+        IO.puts("[!] Receive error: #{inspect(reason)}")
         :error
+
+      a ->
+        send(sender, :unknown)
+        IO.puts("[!] Unknown response: #{inspect(a)}")
+        :ok
+    end
+  end
+
+  def parse("{ " <> _ = msg), do: parse(String.trim(msg))
+
+  def parse("{" <> msg) do
+    msg
+    |> String.trim_trailing("}")
+    |> String.split(",", parts: 2)
+    |> case do
+      [sender, data] ->
+        %{sender: sender, data: data}
 
       _ ->
-        :error
-    after
-      0 -> :ok
-    end
-    |> case do
-      :error ->
-        :error
-
-      :ok ->
-        case client |> Socket.Stream.recv() do
-          {:ok, message} when is_bitstring(message) ->
-            IO.puts("Received message: #{message |> String.trim_trailing()}")
-            handle_recv(client, sender)
-
-          {:ok, nil} ->
-            IO.puts("[!] Received nil (Server Disconnected).")
-            send(sender, :done)
-            :ok
-
-          {:error, :closed} ->
-            IO.puts("[!] Connection closed by server.")
-            send(sender, :done)
-            :ok
-
-          {:error, reason} ->
-            send(sender, :error)
-            IO.puts("[!] Receive error: #{inspect(reason)}")
-            :error
-
-          a ->
-            send(sender, :unknown)
-            IO.puts("[!] Unknown response: #{inspect(a)}")
-            :ok
-        end
+        {:error, :invalid_format}
     end
   end
 end

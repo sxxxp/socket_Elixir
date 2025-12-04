@@ -57,6 +57,7 @@ defmodule Socket3.Server do
         pid =
           spawn_link(fn ->
             IO.puts("Client connected: #{inspect(client)} - Starting new process.")
+            broadcast_message("system", "#{inspect(client)} joined.")
             echo_client(self(), client)
             client_close(self(), client)
           end)
@@ -81,6 +82,7 @@ defmodule Socket3.Server do
         case message do
           "quit" <> _ ->
             client_close(pid, sock)
+            broadcast_message("system", "#{inspect(sock)} left.")
             IO.puts("#{inspect(sock)} sent 'quit'. Closing connection.")
             :ok
 
@@ -90,11 +92,13 @@ defmodule Socket3.Server do
         end
 
       {:ok, nil} ->
+        broadcast_message("system", "#{inspect(sock)} left.")
         client_close(pid, sock)
         IO.puts("[!] Received nil (Client Disconnected).")
         :ok
 
       {:error, :closed} ->
+        broadcast_message("system", "#{inspect(sock)} left.")
         client_close(pid, sock)
         IO.puts("[!] Client has already closed connection.")
         :ok
@@ -107,7 +111,12 @@ defmodule Socket3.Server do
 
   defp broadcast_message(sender, data) do
     for sock <- Socket3.Tracker.get_clients(), sender != sock do
-      sock |> Socket.Stream.send!("#{inspect(sender)} sended: " <> data)
+      data = data |> String.trim_trailing()
+
+      case sock |> Socket.Stream.send("{#{inspect(sender)},#{data}}\n") do
+        :ok -> :ok
+        {:error, _} -> client_close(self(), sock)
+      end
     end
   end
 

@@ -5,9 +5,10 @@ defmodule Pro1.MixProject do
     [
       app: :pro1,
       version: "0.1.0",
-      elixir: "~> 1.18",
+      elixir: "~> 1.14",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      escript: [main_module: Socket3.CLI]
     ]
   end
 
